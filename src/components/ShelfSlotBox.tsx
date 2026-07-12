@@ -135,7 +135,7 @@ export function ShelfSlotBox({ slot, boxType, disabled = false, onClaim, cellRef
 
   return (
     <div className="shelf-slot-cell" ref={cellRef}>
-      <div className="shelf-slot-scene">
+      <div className="shelf-slot-scene" data-box={boxType}>
         <button
           type="button"
           className={`shelf-slot shelf-slot--available${isHovered ? ' shelf-slot--lifted' : ''}${isDraggingThis ? ' shelf-slot--dragging' : ''}${disabled ? ' shelf-slot--capped' : ''}`}

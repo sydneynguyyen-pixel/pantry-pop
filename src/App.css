@@ -9,11 +9,11 @@
 .cursor-sparkle {
   position: fixed;
   z-index: 9999;
-  width: 7px;
-  height: 7px;
+  width: 9px;
+  height: 9px;
   background: var(--sparkle-color);
   clip-path: polygon(50% 0%, 63% 37%, 100% 50%, 63% 63%, 50% 100%, 37% 63%, 0% 50%, 37% 37%);
-  box-shadow: 0 0 6px 1px var(--sparkle-color);
+  box-shadow: 0 0 8px 1px var(--sparkle-color);
   pointer-events: none;
   transform: translate(-50%, -50%) scale(0);
   animation: cursor-sparkle-pop 0.7s ease-out forwards;
@@ -31,7 +31,14 @@
 .scene-bg__sky {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, var(--sky-top) 0%, var(--sky-bottom) 72%);
+  background: linear-gradient(
+    180deg,
+    var(--sky-1) var(--sky-p1),
+    var(--sky-2) var(--sky-p2),
+    var(--sky-3) var(--sky-p3),
+    var(--sky-4) var(--sky-p4),
+    var(--sky-4) 100%
+  );
 }
 
 .scene-bg__cloud {
@@ -81,35 +88,101 @@
   50% { opacity: 1; }
 }
 
-.scene-bg__grass {
+/* ── Fluffy cloud bank massed along the bottom edge ──
+   Big overlapping cumulus puffs (same family as the upper drifting clouds),
+   sky-palette tints, lighter tops. Overhangs the edges so the gentle drift
+   never exposes sky. */
+.scene-bg__cloudbank {
   position: absolute;
-  left: 0;
-  right: 0;
+  left: -5%;
+  right: -5%;
   bottom: 0;
-  height: 26vh;
-  min-height: 170px;
-  background: linear-gradient(180deg, var(--grass-light) 0%, var(--grass-dark) 100%);
-  clip-path: polygon(0 55%, 100% 20%, 100% 100%, 0 100%);
+  height: clamp(200px, 30vh, 380px); /* ~1/3 page — white backing for the basket */
+  overflow: hidden;
+  filter: blur(1px);
+  animation: cloudbank-drift 30s ease-in-out infinite;
+  /* Full-bleed white wash (a LINEAR gradient sized 100% — a rectangle, so it
+     fills the viewport corner-to-corner with zero cutoff at any width) with BIG
+     bottom-anchored puffs rising from the very bottom edge: each puff is an
+     ellipse centered at 50% 100%, so its base sits at the bottom (lower half
+     clipped/off-screen) and its top pokes up. Overlapping + irregular sizes;
+     px-sized so they never flatten; soft edges + blur blend into the wash. */
+  background:
+    radial-gradient(200px 150px at 50% 100%, var(--cloud-top) 0 70%, transparent 100%) 4% bottom / 400px 150px no-repeat,
+    radial-gradient(260px 200px at 50% 100%, var(--cloud-top) 0 70%, transparent 100%) 20% bottom / 520px 200px no-repeat,
+    radial-gradient(180px 130px at 50% 100%, var(--cloud-top) 0 70%, transparent 100%) 34% bottom / 360px 130px no-repeat,
+    radial-gradient(300px 230px at 50% 100%, var(--cloud-top) 0 70%, transparent 100%) 50% bottom / 600px 230px no-repeat,
+    radial-gradient(200px 150px at 50% 100%, var(--cloud-top) 0 70%, transparent 100%) 64% bottom / 400px 150px no-repeat,
+    radial-gradient(260px 190px at 50% 100%, var(--cloud-top) 0 70%, transparent 100%) 80% bottom / 520px 190px no-repeat,
+    radial-gradient(210px 160px at 50% 100%, var(--cloud-top) 0 70%, transparent 100%) 96% bottom / 420px 160px no-repeat,
+    /* full-bleed soft white wash — fades up into the sky, fills every corner */
+    linear-gradient(to top, var(--cloud-body) 0 30%, transparent 88%) left bottom / 100% 100% no-repeat;
 }
 
-.scene-bg__flower {
+@keyframes cloudbank-drift {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(10px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scene-bg__cloudbank {
+    animation: none !important;
+  }
+}
+
+/* ── Crystal-candy-star ambient layer ── */
+.candy-field {
   position: absolute;
-  bottom: -18px;
-  width: 130px;
-  height: 130px;
+  inset: 0;
 }
 
-.scene-bg__flower--left {
-  left: -20px;
-  transform: rotate(-8deg);
+.candy-star {
+  position: absolute;
+  display: block;
+  will-change: transform;
+  animation-name: candy-float;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
 }
 
-.scene-bg__flower--right {
-  right: -16px;
-  bottom: 6vh;
-  width: 150px;
-  height: 150px;
-  transform: rotate(10deg);
+.candy-star__tw {
+  display: block;
+  line-height: 0;
+  opacity: var(--base-op, 0.8);
+  will-change: transform, opacity;
+  animation-name: candy-twinkle;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+/* Depth: smaller = dimmer / further back, larger = brighter / closer */
+.candy-star--sm { --base-op: 0.55; }
+.candy-star--md { --base-op: 0.8; }
+.candy-star--lg { --base-op: 1; }
+
+/* Dark mode: jewel glow + brighter gloss */
+.candy-star--glow .candy-star__tw {
+  filter: drop-shadow(0 0 5px color-mix(in srgb, var(--h) 70%, transparent))
+    drop-shadow(0 0 12px color-mix(in srgb, var(--h) 45%, transparent));
+}
+
+@keyframes candy-float {
+  0% { transform: translate(0, 0); }
+  30% { transform: translate(var(--fx), var(--fy)); }
+  60% { transform: translate(calc(var(--fx) * -0.6), calc(var(--fy) * 0.4)); }
+  100% { transform: translate(0, 0); }
+}
+
+@keyframes candy-twinkle {
+  0%, 70%, 100% { opacity: var(--base-op, 0.8); transform: scale(1); }
+  82% { opacity: 1; transform: scale(1.07); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .candy-star,
+  .candy-star__tw {
+    animation: none !important;
+  }
 }
 
 .app {
@@ -1079,6 +1152,80 @@
   backface-visibility: visible;
   transform: rotateX(90deg) translateZ(calc(var(--box-h) / 2));
   filter: brightness(1.08);
+}
+
+/* ── Candy-glass "jelly" finish on shelf boxes ──
+   Pure overlay: the printed <img> face art is never modified. All finish
+   (rim, facets, gloss, speckle, glow) is layered on top / around each face.
+   Scoped to .shelf-slot__cube so FocusMode's box is unaffected. */
+.shelf-slot-scene[data-box='breakfast'] { --jelly: var(--jelly-breakfast); }
+.shelf-slot-scene[data-box='lunch'] { --jelly: var(--jelly-lunch); }
+.shelf-slot-scene[data-box='dinner'] { --jelly: var(--jelly-dinner); }
+.shelf-slot-scene[data-box='snack'] { --jelly: var(--jelly-snack); }
+.shelf-slot-scene[data-box='dessert'] { --jelly: var(--jelly-dessert); }
+
+/* Square corners so the front/top/side planes tile edge-to-edge with no
+   sky peeking through the seams. Scoped to the shelf cube (FocusMode keeps
+   its own rounded faces). */
+.shelf-slot__cube .shelf-slot__face3d {
+  border-radius: 0;
+  box-shadow:
+    inset 0 0 0 2.5px color-mix(in srgb, var(--jelly, #cbd5e1) 58%, #2a1046),
+    inset 0 0 0 4px rgba(255, 255, 255, 0.5),
+    inset 0 -5px 9px rgba(40, 16, 70, 0.1),
+    inset 0 4px 7px rgba(255, 255, 255, 0.28);
+}
+
+/* Faceted gem light — angular lighter/darker planes of the jelly hue */
+.shelf-slot__cube .shelf-slot__face3d::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    linear-gradient(133deg, rgba(255, 255, 255, 0.3) 0%, rgba(255, 255, 255, 0) 30%),
+    linear-gradient(300deg, color-mix(in srgb, var(--jelly, #cbd5e1) 32%, transparent) 0%, transparent 34%),
+    linear-gradient(58deg, color-mix(in srgb, #2a1046 20%, transparent) 0%, transparent 24%),
+    linear-gradient(116deg, transparent 45%, rgba(255, 255, 255, 0.16) 50%, transparent 55%);
+}
+
+/* Glossy white highlight blobs near the top + fine candy-glitter speckle */
+.shelf-slot__cube .shelf-slot__face3d::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  border-radius: inherit;
+  background:
+    radial-gradient(42% 26% at 27% 15%, rgba(255, 255, 255, 0.72) 0%, rgba(255, 255, 255, 0) 72%),
+    radial-gradient(14% 12% at 64% 11%, rgba(255, 255, 255, 0.6) 0%, rgba(255, 255, 255, 0) 72%),
+    radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.42) 0.5px, transparent 0.7px);
+  background-size: auto, auto, 12px 12px;
+  background-repeat: no-repeat, no-repeat, repeat;
+  transition: filter 0.22s ease;
+}
+
+/* Gloss pops a touch brighter when the box lifts on hover */
+.shelf-slot--lifted .shelf-slot__cube .shelf-slot__face3d--front::after {
+  filter: brightness(1.25);
+}
+
+/* Dark mode: glowing jewel-tone — colored halo behind the box */
+:root[data-theme='dark'] .shelf-slot--available {
+  filter:
+    drop-shadow(0 6px 10px rgba(0, 0, 0, 0.2))
+    drop-shadow(0 14px 22px rgba(0, 0, 0, 0.14))
+    drop-shadow(0 0 9px color-mix(in srgb, var(--jelly, #7c6bd0) 42%, transparent));
+}
+
+:root[data-theme='dark'] .shelf-slot--available.shelf-slot--lifted {
+  filter:
+    drop-shadow(0 12px 16px rgba(0, 0, 0, 0.26))
+    drop-shadow(0 26px 36px rgba(0, 0, 0, 0.18))
+    drop-shadow(0 0 15px color-mix(in srgb, var(--jelly, #7c6bd0) 60%, transparent));
 }
 
 /* Focus Mode's box is seen from more angles than the shelf's fixed view

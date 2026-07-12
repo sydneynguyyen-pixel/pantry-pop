@@ -14,6 +14,7 @@ import { SceneBackground } from './components/SceneBackground'
 import { SettingsPanel } from './components/SettingsPanel'
 import { ThemeToggle } from './components/ThemeToggle'
 import { useBasketStore } from './state/useBasketStore'
+import { useDragStore } from './state/useDragStore'
 import { useThemeStore } from './state/useThemeStore'
 import type { BasketItem, BoxType } from './types'
 import './App.css'
@@ -35,10 +36,17 @@ function App() {
   const items = useBasketStore((state) => state.items)
   const focusItem = useBasketStore((state) => state.items.find((item) => item.id === focusItemId)) ?? null
   const theme = useThemeStore((state) => state.theme)
+  const isDragging = useDragStore((state) => state.isDragging)
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
   }, [theme])
+
+  // While a box is dragged, mark <body> so the pink star cursor holds across
+  // the whole surface (see the `body.dragging` rule in index.css).
+  useEffect(() => {
+    document.body.classList.toggle('dragging', isDragging)
+  }, [isDragging])
 
   const openFocusItem = (item: BasketItem) => setFocusItemId(item.id)
 

@@ -9,10 +9,41 @@
   --accent-bg: rgba(14, 201, 189, 0.12);
   --accent-border: rgba(14, 201, 189, 0.5);
 
-  --sky-top: #4fb4f0;
-  --sky-bottom: #bfe8ff;
-  --grass-light: #9bdc6a;
-  --grass-dark: #5fb84a;
+  /* ── Dreamy-sky palette — DAY ramp (top → bottom) ──
+     Tweak these four stops (color + position) to re-tune the day sky. */
+  --sky-1: #3462f9; /* blue        (top)    */
+  --sky-2: #89d1f8; /* light blue           */
+  --sky-3: #89d1f8; /* light blue (also drives --star-c / --jelly-dinner) */
+  --sky-4: #d2fcff; /* pale cyan   (bottom) */
+  --sky-p1: 1%;
+  --sky-p2: 41%;
+  --sky-p3: 41%; /* == p2, so the ramp reads as 3 stops: 3462f9 → 89d1f8 → d2fcff */
+  --sky-p4: 85%;
+
+  /* Back-compat aliases (body bg + any legacy refs) */
+  --sky-top: var(--sky-1);
+  --sky-bottom: var(--sky-4);
+
+  /* ── Crystal-candy-star hues — harmonized with the sky ramp ──
+     DAY: pastel candy tints (day sky is all-blue, so pink/peach
+     come from these sibling stops). Retune stars in one place. */
+  --star-a: #ff9ec4; /* pink       */
+  --star-b: #b7a6ff; /* purple     */
+  --star-c: var(--sky-3); /* blue  (ties to sky) */
+  --star-d: #ffc59e; /* peach      */
+
+  /* ── Blind-box "jelly candy" hues, per box type ──
+     Keeps each type's color identity, harmonized with the sky/star
+     palette. DAY = pastel jelly. Retune box material in one place. */
+  --jelly-breakfast: #ffa6c9; /* pink  */
+  --jelly-lunch: #a9e06a; /* green     */
+  --jelly-dinner: var(--sky-3); /* blue (ties to sky) */
+  --jelly-snack: #7fe0c9; /* teal      */
+  --jelly-dessert: #c6a6f2; /* purple   */
+
+  /* ── Bottom cloud bank — soft cumulus, lighter tops (DAY) ── */
+  --cloud-body: #f2f7ff;
+  --cloud-top: #ffffff;
 
   --breakfast: #ff9d9d;
   --breakfast-dark: #e0645f;
@@ -33,6 +64,10 @@
   color-scheme: light;
   color: var(--text);
   background: var(--sky-bottom);
+  /* Resting cursor: WHITE candy circle with a soft drop shadow (22px, hotspot
+     11 11, graceful fallback to auto). Clickable elements + the drag state
+     swap in the smaller rainbow-COLOR circle variant (see rules below). */
+  cursor: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'22'%20height%3D'22'%20viewBox%3D'0%200%20100%20100'%3E%3Cdefs%3E%3CradialGradient%20id%3D'sh'%20cx%3D'50%25'%20cy%3D'50%25'%20r%3D'50%25'%3E%3Cstop%20offset%3D'0'%20stop-color%3D'%23000'%20stop-opacity%3D'.4'%2F%3E%3Cstop%20offset%3D'.6'%20stop-color%3D'%23000'%20stop-opacity%3D'.22'%2F%3E%3Cstop%20offset%3D'1'%20stop-color%3D'%23000'%20stop-opacity%3D'0'%2F%3E%3C%2FradialGradient%3E%3C%2Fdefs%3E%3Ccircle%20cx%3D'50'%20cy%3D'55'%20r%3D'44'%20fill%3D'url(%23sh)'%2F%3E%3Ccircle%20cx%3D'50'%20cy%3D'50'%20r%3D'33'%20fill%3D'%23fff'%20stroke%3D'%23fff'%20stroke-width%3D'9'%20paint-order%3D'stroke'%2F%3E%3C%2Fsvg%3E") 11 11, auto;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -40,10 +75,34 @@
 }
 
 :root[data-theme='dark'] {
-  --sky-top: #171b3d;
-  --sky-bottom: #3a3f7a;
-  --grass-light: #3f7a4e;
-  --grass-dark: #234a30;
+  /* ── NIGHT ramp — candy purple → magenta twilight ── */
+  --sky-1: #2b0076; /* deep purple (top)    */
+  --sky-2: #4d5cfc; /* indigo               */
+  --sky-3: #8391ff; /* periwinkle           */
+  --sky-4: #f889e9; /* magenta     (bottom) */
+  --sky-p1: 1%;
+  --sky-p2: 28%;
+  --sky-p3: 60%;
+  --sky-p4: 91%;
+  --sky-top: var(--sky-1);
+  --sky-bottom: var(--sky-4);
+
+  /* NIGHT: deeper jewel tones pulled from the sky ramp — glow in dark mode */
+  --star-a: var(--sky-4); /* magenta    */
+  --star-b: #9a7bff; /* violet jewel    */
+  --star-c: var(--sky-3); /* periwinkle */
+  --star-d: #ff9ec2; /* pink-peach jewel */
+
+  /* NIGHT: deeper glowing jewel-tone jelly per box type */
+  --jelly-breakfast: var(--sky-4); /* magenta jewel */
+  --jelly-lunch: #86c93f; /* green jewel  */
+  --jelly-dinner: #6aa6ff; /* blue jewel  */
+  --jelly-snack: #3fcaa8; /* teal jewel   */
+  --jelly-dessert: var(--star-b); /* violet jewel */
+
+  /* NIGHT: keep the cloud bank white, same as day */
+  --cloud-body: #f2f7ff;
+  --cloud-top: #ffffff;
 }
 
 #root {
@@ -73,4 +132,29 @@ p {
 
 button {
   font-family: inherit;
+}
+
+/* Keep the text I-beam on text-entry fields (don't show the star cursor there) */
+input:where([type='text'], [type='search'], [type='number'], [type='email'], [type='url'], [type='password'], :not([type])),
+textarea {
+  cursor: text;
+}
+
+/* Clickable elements: rainbow-COLOR, white-bordered, slightly smaller circle
+   with a soft drop shadow (18px, hotspot 9 9) — REPLACES the native hand
+   pointer entirely. One shared rule + !important so it overrides every
+   scattered `cursor: pointer`. :not(:disabled) keeps `not-allowed`. */
+button:not(:disabled),
+a[href],
+[role='button']:not([aria-disabled='true']),
+summary {
+  cursor: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'18'%20height%3D'18'%20viewBox%3D'0%200%20100%20100'%3E%3Cdefs%3E%3CradialGradient%20id%3D'sh'%20cx%3D'50%25'%20cy%3D'50%25'%20r%3D'50%25'%3E%3Cstop%20offset%3D'0'%20stop-color%3D'%23000'%20stop-opacity%3D'.4'%2F%3E%3Cstop%20offset%3D'.6'%20stop-color%3D'%23000'%20stop-opacity%3D'.22'%2F%3E%3Cstop%20offset%3D'1'%20stop-color%3D'%23000'%20stop-opacity%3D'0'%2F%3E%3C%2FradialGradient%3E%3ClinearGradient%20id%3D'g'%20x1%3D'0'%20y1%3D'0'%20x2%3D'1'%20y2%3D'1'%3E%3Cstop%20offset%3D'0'%20stop-color%3D'%23ff8fce'%2F%3E%3Cstop%20offset%3D'.22'%20stop-color%3D'%23b78cff'%2F%3E%3Cstop%20offset%3D'.48'%20stop-color%3D'%237fb2ff'%2F%3E%3Cstop%20offset%3D'.72'%20stop-color%3D'%237fe0c9'%2F%3E%3Cstop%20offset%3D'1'%20stop-color%3D'%23ffe27a'%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Ccircle%20cx%3D'50'%20cy%3D'55'%20r%3D'44'%20fill%3D'url(%23sh)'%2F%3E%3Ccircle%20cx%3D'50'%20cy%3D'50'%20r%3D'33'%20fill%3D'url(%23g)'%20stroke%3D'%23fff'%20stroke-width%3D'9'%20paint-order%3D'stroke'%2F%3E%3C%2Fsvg%3E") 9 9, auto !important;
+}
+
+/* Active drag (body gets `.dragging` while a box is dragged): the SAME
+   rainbow-color circle holds across the WHOLE surface — even over
+   non-interactive areas — so it never flickers back to the white circle. */
+body.dragging,
+body.dragging * {
+  cursor: url("data:image/svg+xml,%3Csvg%20xmlns%3D'http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg'%20width%3D'18'%20height%3D'18'%20viewBox%3D'0%200%20100%20100'%3E%3Cdefs%3E%3CradialGradient%20id%3D'sh'%20cx%3D'50%25'%20cy%3D'50%25'%20r%3D'50%25'%3E%3Cstop%20offset%3D'0'%20stop-color%3D'%23000'%20stop-opacity%3D'.4'%2F%3E%3Cstop%20offset%3D'.6'%20stop-color%3D'%23000'%20stop-opacity%3D'.22'%2F%3E%3Cstop%20offset%3D'1'%20stop-color%3D'%23000'%20stop-opacity%3D'0'%2F%3E%3C%2FradialGradient%3E%3ClinearGradient%20id%3D'g'%20x1%3D'0'%20y1%3D'0'%20x2%3D'1'%20y2%3D'1'%3E%3Cstop%20offset%3D'0'%20stop-color%3D'%23ff8fce'%2F%3E%3Cstop%20offset%3D'.22'%20stop-color%3D'%23b78cff'%2F%3E%3Cstop%20offset%3D'.48'%20stop-color%3D'%237fb2ff'%2F%3E%3Cstop%20offset%3D'.72'%20stop-color%3D'%237fe0c9'%2F%3E%3Cstop%20offset%3D'1'%20stop-color%3D'%23ffe27a'%2F%3E%3C%2FlinearGradient%3E%3C%2Fdefs%3E%3Ccircle%20cx%3D'50'%20cy%3D'55'%20r%3D'44'%20fill%3D'url(%23sh)'%2F%3E%3Ccircle%20cx%3D'50'%20cy%3D'50'%20r%3D'33'%20fill%3D'url(%23g)'%20stroke%3D'%23fff'%20stroke-width%3D'9'%20paint-order%3D'stroke'%2F%3E%3C%2Fsvg%3E") 9 9, auto !important;
 }

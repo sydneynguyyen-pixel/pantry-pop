@@ -13,8 +13,14 @@ import { RecipePoolManager } from './components/RecipePoolManager'
 import { SceneBackground } from './components/SceneBackground'
 import { SettingsPanel } from './components/SettingsPanel'
 import { ThemeToggle } from './components/ThemeToggle'
+import { TutorialOverlay } from './components/TutorialOverlay'
+import { startBackgroundMusic } from './lib/sound'
 import { useBasketStore } from './state/useBasketStore'
 import { useDragStore } from './state/useDragStore'
+import { useOnboardingStore } from './state/useOnboardingStore'
+import { usePoolStore } from './state/usePoolStore'
+import { useSettingsStore } from './state/useSettingsStore'
+import { useShelfStore } from './state/useShelfStore'
 import { useThemeStore } from './state/useThemeStore'
 import type { BasketItem, BoxType } from './types'
 import './App.css'
@@ -37,6 +43,7 @@ function App() {
   const focusItem = useBasketStore((state) => state.items.find((item) => item.id === focusItemId)) ?? null
   const theme = useThemeStore((state) => state.theme)
   const isDragging = useDragStore((state) => state.isDragging)
+  const musicEnabled = useSettingsStore((state) => state.settings.musicEnabled)
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -47,6 +54,43 @@ function App() {
   useEffect(() => {
     document.body.classList.toggle('dragging', isDragging)
   }, [isDragging])
+
+  useEffect(() => {
+    const onboarding = useOnboardingStore.getState()
+    if (onboarding.hasCompletedTutorial || onboarding.tutorialActive) return
+
+    // Don't force a walkthrough on someone who's already used the app — only auto-start
+    // for a genuinely untouched first visit.
+    const hasCustomRecipes = usePoolStore.getState().recipes.some((recipe) => !recipe.starter)
+    const basketHasItems = useBasketStore.getState().items.length > 0
+    const anyShelfClaimed = Object.values(useShelfStore.getState().shelves).some((shelf) =>
+      shelf.slots.some((slot) => slot.claimed),
+    )
+
+    if (hasCustomRecipes || basketHasItems || anyShelfClaimed) {
+      onboarding.completeTutorial()
+      return
+    }
+
+    onboarding.startTutorial()
+  }, [])
+
+  useEffect(() => {
+    if (!musicEnabled) return
+
+    const resume = () => {
+      startBackgroundMusic()
+      window.removeEventListener('pointerdown', resume)
+      window.removeEventListener('keydown', resume)
+    }
+    window.addEventListener('pointerdown', resume)
+    window.addEventListener('keydown', resume)
+
+    return () => {
+      window.removeEventListener('pointerdown', resume)
+      window.removeEventListener('keydown', resume)
+    }
+  }, [musicEnabled])
 
   const openFocusItem = (item: BasketItem) => setFocusItemId(item.id)
 
@@ -60,6 +104,7 @@ function App() {
         onSelect={(nextView) => {
           setView(nextView)
           setIsCheckoutOpen(false)
+          setFocusItemId(null)
         }}
       />
       <div className="chrome-icon-group chrome-icon-group--right">
@@ -97,6 +142,8 @@ function App() {
 
         {focusItem && <FocusMode item={focusItem} onClose={() => setFocusItemId(null)} />}
       </main>
+
+      <TutorialOverlay view={view} isCheckoutOpen={isCheckoutOpen} focusItemId={focusItemId} />
     </>
   )
 }

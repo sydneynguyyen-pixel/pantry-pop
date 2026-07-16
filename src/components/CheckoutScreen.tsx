@@ -23,6 +23,7 @@ const RARITY_LABELS: Record<BasketItem['rarity'], string> = {
   common: 'Common',
   rare: 'Rare',
   'ultra-rare': 'Ultra Rare',
+  legendary: 'Legendary',
 }
 
 function statusLabel(item: BasketItem): string {
@@ -147,14 +148,18 @@ export function CheckoutScreen({ items, onSelectItem, onBack }: CheckoutScreenPr
                       {BOX_TYPE_LABELS[group.boxType]} · {RARITY_LABELS[group.rarity]} · {group.macros.calories} cal
                     </span>
                   </div>
-                  <ul className="shopping-list__ingredients">
-                    {group.ingredients.map((entry) => (
-                      <li key={entry.ingredient}>
-                        <span>{entry.ingredient}</span>
-                        <span className="shopping-list__ingredient-macro">~{entry.estimatedMacros.calories} cal</span>
-                      </li>
-                    ))}
-                  </ul>
+                  {group.ingredients.length === 0 ? (
+                    <p className="shopping-list__pickup">🛍️ Pick up: {group.name}</p>
+                  ) : (
+                    <ul className="shopping-list__ingredients">
+                      {group.ingredients.map((entry) => (
+                        <li key={entry.ingredient}>
+                          <span>{entry.ingredient}</span>
+                          <span className="shopping-list__ingredient-macro">~{entry.estimatedMacros.calories} cal</span>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
                 </div>
               ))}
             </div>

@@ -1,6 +1,6 @@
 export type BoxType = 'snack' | 'breakfast' | 'lunch' | 'dinner' | 'dessert'
 
-export type Rarity = 'common' | 'rare' | 'ultra-rare'
+export type Rarity = 'common' | 'rare' | 'ultra-rare' | 'legendary'
 
 export type Macros = {
   calories: number
@@ -22,6 +22,7 @@ export type Recipe = {
   emoji: string
   active?: boolean
   customImage?: string
+  starter?: boolean
 }
 
 export type ShelfSlot = {
@@ -36,21 +37,33 @@ export type DisplayShelf = {
   boxTypeId: BoxType
   slots: ShelfSlot[]
   lastRestockedAt: string
+  slotsSinceRare: number
   slotsSinceUltraRare: number
+  slotsSinceLegendary: number
 }
 
 export type Weekday = 'sun' | 'mon' | 'tue' | 'wed' | 'thu' | 'fri' | 'sat'
 
+export type SplurgeTier = 'rare' | 'ultra-rare' | 'legendary'
+
 export type RarityWeights = {
+  legendaryChance: number
   ultraRareChance: number
   rareChance: number
-  pityThreshold?: number
+  rarePityThreshold?: number
+  ultraRarePityThreshold?: number
+  legendaryPityThreshold?: number
+  rareEligibleDays: Weekday[]
   ultraRareEligibleDays: Weekday[]
+  legendaryEligibleDays: Weekday[]
 }
 
 export type UserSettings = {
   rarityWeights: RarityWeights
   calorieGoal?: number
+  soundEnabled: boolean
+  musicEnabled: boolean
+  hapticsEnabled: boolean
 }
 
 export type UnwrapStage =

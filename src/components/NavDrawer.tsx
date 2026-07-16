@@ -45,6 +45,7 @@ export function NavDrawer<View extends string>({ view, options, onSelect }: NavD
                   <button
                     type="button"
                     className={`drawer__item${option.id === view ? ' drawer__item--active' : ''}`}
+                    data-tutorial-target={option.id === 'recipes' ? 'go-to-recipes' : undefined}
                     onClick={() => {
                       onSelect(option.id)
                       setIsOpen(false)

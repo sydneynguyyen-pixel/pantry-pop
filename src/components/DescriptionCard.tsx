@@ -4,6 +4,7 @@ export const RARITY_LABEL: Record<Recipe['rarity'], string> = {
   common: 'Common',
   rare: 'Rare',
   'ultra-rare': 'Ultra Rare ✨',
+  legendary: 'Legendary 🔥',
 }
 
 export function DescriptionCard({ recipe }: { recipe: Recipe }) {
@@ -29,7 +30,10 @@ export function DescriptionCard({ recipe }: { recipe: Recipe }) {
           <dd>{recipe.macros.fat}g</dd>
         </div>
       </dl>
-      <p className="description-card__prep">{recipe.prepTimeMinutes} min prep</p>
+      <p className="description-card__prep">
+        {recipe.ingredients.length === 0 ? 'Pickup only' : `${recipe.prepTimeMinutes} min prep`}
+        {recipe.macros.estimated && ' · nutrition estimated'}
+      </p>
     </div>
   )
 }

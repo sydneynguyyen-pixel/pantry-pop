@@ -38,10 +38,30 @@ export function FaqDrawer() {
                 out the food, then tap once more for the full recipe card.
               </li>
               <li>
-                <strong>Chase rarities.</strong> Common, rare, and ultra-rare items each get their own confetti color
-                — collect them all in your History tab.
+                <strong>Chase rarities.</strong> Common, rare, ultra-rare, and legendary items each get their own
+                confetti color — collect them all in your History tab.
               </li>
             </ol>
+
+            <h2 className="drawer__title drawer__title--secondary">Rarity guide</h2>
+            <dl className="rarity-guide">
+              <div className="rarity-guide__row">
+                <dt className="rarity-guide__tier rarity-guide__tier--common">Common</dt>
+                <dd>Homemade, very healthy, meets your everyday fitness goals.</dd>
+              </div>
+              <div className="rarity-guide__row">
+                <dt className="rarity-guide__tier rarity-guide__tier--rare">Rare</dt>
+                <dd>Homemade, relatively healthy, with a special touch — think steak or fried dishes.</dd>
+              </div>
+              <div className="rarity-guide__row">
+                <dt className="rarity-guide__tier rarity-guide__tier--ultra-rare">Ultra Rare</dt>
+                <dd>Homemade, no calorie limit — extra special, extra yummy treats.</dd>
+              </div>
+              <div className="rarity-guide__row">
+                <dt className="rarity-guide__tier rarity-guide__tier--legendary">Legendary</dt>
+                <dd>Takeout, fast food, chain or branded items — the splurges you can't make at home.</dd>
+              </div>
+            </dl>
           </aside>
         </div>
       )}

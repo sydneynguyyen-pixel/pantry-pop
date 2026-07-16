@@ -3,6 +3,7 @@ import { persist } from 'zustand/middleware'
 import {
   BOX_TYPES,
   createInitialShelf,
+  getShelfSlotCount,
   isShelfFullyClaimed,
   restockShelf,
 } from '../lib/shelfRestock'
@@ -17,6 +18,7 @@ type ShelfState = {
   returnSlot: (boxType: BoxType, slotIndex: number) => void
   resetShelf: (boxType: BoxType) => void
   shuffleShelf: (boxType: BoxType) => void
+  syncSlotCount: (boxType: BoxType) => void
 }
 
 function createInitialShelves(): Record<BoxType, DisplayShelf> {
@@ -55,15 +57,22 @@ export const useShelfStore = create<ShelfState>()(
         const updatedSlots = shelf.slots.map((existing) =>
           existing.slotIndex === slotIndex ? { ...existing, claimed: true } : existing,
         )
-
         const updatedShelf: DisplayShelf = { ...shelf, slots: updatedSlots }
-        const pool = usePoolStore.getState().getActiveRecipesForBoxType(boxType)
-        const { rarityWeights } = useSettingsStore.getState().settings
-        const nextShelf = isShelfFullyClaimed(updatedSlots)
-          ? restockShelf(updatedShelf, pool, rarityWeights)
-          : updatedShelf
+        set((state) => ({ shelves: { ...state.shelves, [boxType]: updatedShelf } }))
 
-        set((state) => ({ shelves: { ...state.shelves, [boxType]: nextShelf } }))
+        // A fully-claimed shelf auto-restocks — but if this shelf only had one slot, doing
+        // that in the same tick means the box never visibly shows "claimed" before it's
+        // replaced. Give the claimed state a moment on screen first.
+        if (isShelfFullyClaimed(updatedSlots)) {
+          window.setTimeout(() => {
+            const latestShelf = get().shelves[boxType]
+            if (!isShelfFullyClaimed(latestShelf.slots)) return
+            const pool = usePoolStore.getState().getActiveRecipesForBoxType(boxType)
+            const { rarityWeights } = useSettingsStore.getState().settings
+            const nextShelf = restockShelf(latestShelf, pool, rarityWeights)
+            set((state) => ({ shelves: { ...state.shelves, [boxType]: nextShelf } }))
+          }, 500)
+        }
       },
 
       returnSlot: (boxType, slotIndex) => {
@@ -77,6 +86,14 @@ export const useShelfStore = create<ShelfState>()(
       resetShelf: (boxType) => {
         const shelf = get().shelves[boxType]
         const pool = usePoolStore.getState().getActiveRecipesForBoxType(boxType)
+        const { rarityWeights } = useSettingsStore.getState().settings
+        set((state) => ({ shelves: { ...state.shelves, [boxType]: restockShelf(shelf, pool, rarityWeights) } }))
+      },
+
+      syncSlotCount: (boxType) => {
+        const shelf = get().shelves[boxType]
+        const pool = usePoolStore.getState().getActiveRecipesForBoxType(boxType)
+        if (shelf.slots.length === getShelfSlotCount(pool)) return
         const { rarityWeights } = useSettingsStore.getState().settings
         set((state) => ({ shelves: { ...state.shelves, [boxType]: restockShelf(shelf, pool, rarityWeights) } }))
       },

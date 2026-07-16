@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { playRustle } from '../lib/sound'
 import { BASKET_CAP, useBasketStore } from '../state/useBasketStore'
 import { useDragStore } from '../state/useDragStore'
 import { useShelfStore } from '../state/useShelfStore'
@@ -76,6 +77,7 @@ export function DisplayShelf({ boxType }: DisplayShelfProps) {
     const runRound = () => {
       order = shuffleArray(order)
       animateToOrder(order)
+      playRustle()
       round += 1
 
       if (round < SHUFFLE_ROUNDS) {
@@ -91,7 +93,11 @@ export function DisplayShelf({ boxType }: DisplayShelfProps) {
     runRound()
   }
 
-  const orderedSlots = displayOrder.map((slotIndex) => shelf.slots[slotIndex])
+  // displayOrder can briefly lag shelf.slots for one render after a restock changes the
+  // slot count (its effect runs after commit) — fall back to shelf order rather than index
+  // into a resized array.
+  const orderedSlots =
+    displayOrder.length === shelf.slots.length ? displayOrder.map((slotIndex) => shelf.slots[slotIndex]) : shelf.slots
 
   return (
     <section
@@ -108,21 +114,27 @@ export function DisplayShelf({ boxType }: DisplayShelfProps) {
       </button>
 
       <div className="display-shelf__case">
-        <div className="display-shelf__grid">
-          {orderedSlots.map((slot) => (
-            <ShelfSlotBox
-              key={slot.slotIndex}
-              slot={slot}
-              boxType={boxType}
-              disabled={isBasketFull || isShuffling}
-              onClaim={(slotIndex) => claimSlot(boxType, slotIndex)}
-              cellRef={(el) => {
-                if (el) cellRefs.current.set(slot.slotIndex, el)
-                else cellRefs.current.delete(slot.slotIndex)
-              }}
-            />
-          ))}
-        </div>
+        {orderedSlots.length === 0 ? (
+          <p className="display-shelf__empty">
+            No active {boxType} recipes yet — add or turn on some in Manage recipes.
+          </p>
+        ) : (
+          <div className="display-shelf__grid">
+            {orderedSlots.map((slot) => (
+              <ShelfSlotBox
+                key={slot.slotIndex}
+                slot={slot}
+                boxType={boxType}
+                disabled={isBasketFull || isShuffling}
+                onClaim={(slotIndex) => claimSlot(boxType, slotIndex)}
+                cellRef={(el) => {
+                  if (el) cellRefs.current.set(slot.slotIndex, el)
+                  else cellRefs.current.delete(slot.slotIndex)
+                }}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </section>
   )

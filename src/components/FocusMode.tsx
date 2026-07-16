@@ -1,13 +1,24 @@
 import { useCallback, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { BOX_ART } from '../data/boxArt'
 import { getRecipeImage } from '../lib/recipeImage'
+import { playCardFlip, playRustle, playTabRip, playReveal, playWrapperRip, vibrate } from '../lib/sound'
 import { useBasketStore } from '../state/useBasketStore'
+import { useOnboardingStore } from '../state/useOnboardingStore'
 import { usePoolStore } from '../state/usePoolStore'
-import type { BasketItem } from '../types'
+import type { BasketItem, Rarity } from '../types'
 import { ConfettiBurst } from './ConfettiBurst'
 import { DescriptionCard, RARITY_LABEL } from './DescriptionCard'
 
 const SHAKE_HOLD_MS = 450
+const SHAKE_TICK_MS = 130
+
+const REVEAL_VIBRATION: Record<Rarity, number[]> = {
+  common: [30],
+  rare: [25, 40, 25],
+  'ultra-rare': [30, 40, 30, 40, 90],
+  legendary: [30, 30, 30, 30, 30, 30, 120],
+}
 
 type FocusModeProps = {
   item: BasketItem
@@ -24,13 +35,25 @@ export function FocusMode({ item, onClose }: FocusModeProps) {
   const advanceUnwrapStage = useBasketStore((state) => state.advanceUnwrapStage)
   const recipe = usePoolStore((state) => state.getRecipeById(item.recipeId))
   const [isShaking, setIsShaking] = useState(false)
+  const [isFirstEverReveal, setIsFirstEverReveal] = useState(false)
   const shakeTimer = useRef<number | null>(null)
+  const shakeTickTimer = useRef<number | null>(null)
 
   const handleShakeStart = useCallback(() => {
     setIsShaking(true)
+    playRustle()
+    vibrate(20)
+    shakeTickTimer.current = window.setInterval(() => {
+      playRustle()
+      vibrate(20)
+    }, SHAKE_TICK_MS)
     shakeTimer.current = window.setTimeout(() => {
       advanceUnwrapStage(item.id)
       setIsShaking(false)
+      if (shakeTickTimer.current) {
+        window.clearInterval(shakeTickTimer.current)
+        shakeTickTimer.current = null
+      }
     }, SHAKE_HOLD_MS)
   }, [advanceUnwrapStage, item.id])
 
@@ -38,6 +61,10 @@ export function FocusMode({ item, onClose }: FocusModeProps) {
     if (shakeTimer.current) {
       window.clearTimeout(shakeTimer.current)
       shakeTimer.current = null
+    }
+    if (shakeTickTimer.current) {
+      window.clearInterval(shakeTickTimer.current)
+      shakeTickTimer.current = null
     }
     setIsShaking(false)
   }, [])
@@ -50,10 +77,29 @@ export function FocusMode({ item, onClose }: FocusModeProps) {
   const art = BOX_ART[item.boxType]
 
   const handleBoxClick = () => {
-    if (isClickable) advanceUnwrapStage(item.id)
+    if (!isClickable) return
+
+    if (stage === 'shaken') {
+      playTabRip()
+      vibrate(35)
+    } else if (stage === 'tab-ripped') {
+      playWrapperRip()
+      playReveal(recipe.rarity)
+      vibrate(REVEAL_VIBRATION[recipe.rarity])
+      if (!useOnboardingStore.getState().hasHadFirstReveal) {
+        setIsFirstEverReveal(true)
+        useOnboardingStore.getState().markFirstReveal()
+        window.setTimeout(() => playReveal('legendary'), 120)
+      }
+    } else if (stage === 'wrapper-ripped') {
+      playCardFlip()
+      vibrate(20)
+    }
+
+    advanceUnwrapStage(item.id)
   }
 
-  return (
+  return createPortal(
     <div className="focus-mode" role="dialog" aria-modal="true" aria-label={`Unwrapping ${item.boxType} box`}>
       <button type="button" className="focus-mode__close" onClick={onClose} aria-label="Close focus mode">
         ✕
@@ -64,6 +110,12 @@ export function FocusMode({ item, onClose }: FocusModeProps) {
           <div className="focus-reveal-row">
             <div className="focus-food-reveal">
               <ConfettiBurst rarity={recipe.rarity} />
+              {isFirstEverReveal && (
+                <>
+                  <ConfettiBurst rarity="legendary" />
+                  <span className="focus-first-reveal-banner">🎉 Your first pull!</span>
+                </>
+              )}
               <span className={`focus-food-reveal__rarity focus-food-reveal__rarity--${recipe.rarity}`}>
                 {RARITY_LABEL[recipe.rarity]}
               </span>
@@ -83,7 +135,7 @@ export function FocusMode({ item, onClose }: FocusModeProps) {
           </div>
         )}
 
-        <div className={`focus-cube-scene${recipe.rarity === 'ultra-rare' ? ' focus-cube-scene--ultra-rare' : ''}`}>
+        <div className={`focus-cube-scene focus-cube-scene--${recipe.rarity}`}>
           <div
             className={`focus-cube focus-cube--${recipe.rarity}${isShaking ? ' focus-cube--shaking' : ''}${boxIsOpen ? ' focus-cube--open' : ''}${isClickable ? ' focus-cube--clickable' : ''}${stage === 'wrapper-ripped' || stage === 'item-revealed' ? ' focus-cube--shrunk' : ''}`}
             onClick={handleBoxClick}
@@ -114,7 +166,9 @@ export function FocusMode({ item, onClose }: FocusModeProps) {
 
             <span className="shelf-slot__face3d shelf-slot__face3d--front">
               <img src={art.front} alt="" className="shelf-slot__face-img" />
-              {recipe.rarity === 'ultra-rare' && <span className="focus-cube__foil" aria-hidden="true" />}
+              {(recipe.rarity === 'ultra-rare' || recipe.rarity === 'legendary') && (
+                <span className={`focus-cube__foil focus-cube__foil--${recipe.rarity}`} aria-hidden="true" />
+              )}
             </span>
 
             <span className="shelf-slot__face3d shelf-slot__face3d--top" aria-hidden="true">
@@ -143,6 +197,7 @@ export function FocusMode({ item, onClose }: FocusModeProps) {
           </button>
         )}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

@@ -11,10 +11,21 @@ function recipe(
   ingredients: string[],
   tags: string[] = [],
 ): Recipe {
-  return { id, name, boxType, rarity, macros, prepTimeMinutes, emoji, ingredients, tags }
+  return { id, name, boxType, rarity, macros, prepTimeMinutes, emoji, ingredients, tags, starter: true }
 }
 
-export const STARTER_RECIPES: Recipe[] = [
+// One default-active common recipe per meal type — a minimal "first recipe" starter kit.
+// Everything else in this file loads as an inactive "suggested recipe" the user can opt into
+// from the recipe pool manager, alongside their own custom entries.
+const DEFAULT_ACTIVE_IDS = new Set([
+  'breakfast-oatmeal',
+  'lunch-chicken-wrap',
+  'dinner-salmon',
+  'snack-almonds',
+  'dessert-fruit-bowl',
+])
+
+const RAW_STARTER_RECIPES: Recipe[] = [
   // Breakfast
   recipe('breakfast-oatmeal', 'Overnight oats with berries', 'breakfast', 'common', { calories: 310, protein: 12, carbs: 48, fat: 8 }, 5, '🥣', ['oats', 'milk', 'mixed berries', 'honey']),
   recipe('breakfast-eggs', 'Scrambled eggs on toast', 'breakfast', 'common', { calories: 360, protein: 20, carbs: 28, fat: 16 }, 10, '🍳', ['eggs', 'bread', 'butter']),
@@ -24,6 +35,7 @@ export const STARTER_RECIPES: Recipe[] = [
   recipe('breakfast-pancakes', 'Fluffy buttermilk pancakes', 'breakfast', 'rare', { calories: 480, protein: 11, carbs: 62, fat: 18 }, 20, '🥞', ['flour', 'buttermilk', 'eggs', 'butter', 'maple syrup']),
   recipe('breakfast-shakshuka', 'Shakshuka with feta', 'breakfast', 'rare', { calories: 400, protein: 19, carbs: 26, fat: 24 }, 25, '🍅', ['eggs', 'tomatoes', 'feta', 'onion', 'bell pepper']),
   recipe('breakfast-cinnamon-roll', 'Bakery cinnamon roll', 'breakfast', 'ultra-rare', { calories: 620, protein: 8, carbs: 88, fat: 26 }, 3, '🥐', ['dough', 'cinnamon', 'butter', 'icing']),
+  recipe('breakfast-diner-platter', 'Full American Breakfast', 'breakfast', 'legendary', { calories: 1200, protein: 45, carbs: 110, fat: 65, estimated: true }, 0, '🍽️', []),
 
   // Lunch
   recipe('lunch-chicken-wrap', 'Grilled chicken wrap', 'lunch', 'common', { calories: 450, protein: 32, carbs: 40, fat: 16 }, 12, '🌯', ['tortilla', 'chicken breast', 'lettuce', 'ranch']),
@@ -34,6 +46,7 @@ export const STARTER_RECIPES: Recipe[] = [
   recipe('lunch-pasta-salad', 'Pesto pasta salad', 'lunch', 'rare', { calories: 500, protein: 15, carbs: 60, fat: 20 }, 15, '🍝', ['pasta', 'pesto', 'cherry tomatoes', 'parmesan']),
   recipe('lunch-ramen', 'Tonkotsu ramen', 'lunch', 'rare', { calories: 560, protein: 24, carbs: 66, fat: 20 }, 25, '🍜', ['ramen noodles', 'pork broth', 'egg', 'scallion']),
   recipe('lunch-burger-combo', 'Smashburger and fries', 'lunch', 'ultra-rare', { calories: 890, protein: 34, carbs: 72, fat: 48 }, 20, '🍔', ['beef patty', 'bun', 'cheese', 'fries']),
+  recipe('lunch-happy-meal', "McDonald's Happy Meal", 'lunch', 'legendary', { calories: 480, protein: 15, carbs: 58, fat: 20, estimated: true }, 0, '🍟', []),
 
   // Dinner
   recipe('dinner-salmon', 'Baked salmon with veggies', 'dinner', 'common', { calories: 520, protein: 38, carbs: 22, fat: 26 }, 30, '🐟', ['salmon fillet', 'asparagus', 'lemon', 'olive oil']),
@@ -44,6 +57,7 @@ export const STARTER_RECIPES: Recipe[] = [
   recipe('dinner-steak', 'Pan-seared steak and mash', 'dinner', 'rare', { calories: 620, protein: 42, carbs: 30, fat: 32 }, 35, '🥩', ['ribeye steak', 'butter', 'garlic', 'potatoes']),
   recipe('dinner-paella', 'Seafood paella', 'dinner', 'rare', { calories: 580, protein: 32, carbs: 62, fat: 18 }, 40, '🥘', ['rice', 'shrimp', 'mussels', 'saffron', 'chorizo']),
   recipe('dinner-pizza-night', 'Loaded pepperoni pizza', 'dinner', 'ultra-rare', { calories: 940, protein: 38, carbs: 84, fat: 46 }, 15, '🍕', ['pizza dough', 'pepperoni', 'mozzarella', 'tomato sauce']),
+  recipe('dinner-wingstop', 'Wingstop 6 pc wings', 'dinner', 'legendary', { calories: 540, protein: 42, carbs: 4, fat: 40, estimated: true }, 0, '🍗', []),
 
   // Snack
   recipe('snack-almonds', 'Handful of almonds', 'snack', 'common', { calories: 160, protein: 6, carbs: 6, fat: 14 }, 1, '🥜', ['almonds']),
@@ -54,6 +68,7 @@ export const STARTER_RECIPES: Recipe[] = [
   recipe('snack-trail-mix', 'Dark chocolate trail mix', 'snack', 'rare', { calories: 240, protein: 7, carbs: 22, fat: 15 }, 1, '🍫', ['dark chocolate', 'nuts', 'dried fruit']),
   recipe('snack-protein-bar', 'Protein bar', 'snack', 'rare', { calories: 210, protein: 20, carbs: 22, fat: 7 }, 1, '🍫', ['protein bar']),
   recipe('snack-nachos', 'Loaded nacho basket', 'snack', 'ultra-rare', { calories: 680, protein: 18, carbs: 58, fat: 40 }, 10, '🧀', ['tortilla chips', 'cheese', 'jalapenos', 'salsa']),
+  recipe('snack-italian-ice-gelati', 'Italian Ice Gelati', 'snack', 'legendary', { calories: 280, protein: 5, carbs: 42, fat: 10, estimated: true }, 0, '🍧', []),
 
   // Dessert
   recipe('dessert-fruit-bowl', 'Mixed fruit bowl', 'dessert', 'common', { calories: 110, protein: 1, carbs: 28, fat: 0 }, 3, '🍇', ['mixed fruit']),
@@ -64,4 +79,10 @@ export const STARTER_RECIPES: Recipe[] = [
   recipe('dessert-brownie', 'Fudge brownie', 'dessert', 'rare', { calories: 320, protein: 4, carbs: 42, fat: 16 }, 1, '🍫', ['chocolate', 'butter', 'sugar', 'flour']),
   recipe('dessert-ice-cream', 'Scoop of ice cream', 'dessert', 'rare', { calories: 280, protein: 5, carbs: 32, fat: 15 }, 1, '🍦', ['ice cream']),
   recipe('dessert-sundae', 'Loaded triple-scoop sundae', 'dessert', 'ultra-rare', { calories: 760, protein: 10, carbs: 92, fat: 38 }, 5, '🍨', ['ice cream', 'chocolate sauce', 'whipped cream', 'cherry']),
+  recipe('dessert-tastea-boba', 'Tastea Jasmine Milk Tea with Boba', 'dessert', 'legendary', { calories: 320, protein: 3, carbs: 66, fat: 6, estimated: true }, 0, '🧋', []),
 ]
+
+export const STARTER_RECIPES: Recipe[] = RAW_STARTER_RECIPES.map((r) => ({
+  ...r,
+  active: DEFAULT_ACTIVE_IDS.has(r.id),
+}))

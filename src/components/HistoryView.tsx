@@ -25,6 +25,7 @@ const RARITY_LABELS: Record<Rarity, string> = {
   common: 'Common',
   rare: 'Rare',
   'ultra-rare': 'Ultra Rare',
+  legendary: 'Legendary',
 }
 
 function formatSavedAt(iso: string): string {

@@ -56,6 +56,19 @@
   --dessert: #d9a6f2;
   --dessert-dark: #a855e0;
 
+  --rarity-common: #4caf6a;
+  --rarity-common-dark: #2f9e57;
+  --rarity-common-bg: rgba(76, 175, 106, 0.16);
+  --rarity-rare: #4a90e2;
+  --rarity-rare-dark: #2d6bb0;
+  --rarity-rare-bg: rgba(74, 144, 226, 0.16);
+  --rarity-ultra: #c084fc;
+  --rarity-ultra-dark: #8b3fe0;
+  --rarity-ultra-bg: rgba(192, 132, 252, 0.2);
+  --rarity-legendary: #e0a72e;
+  --rarity-legendary-dark: #97690f;
+  --rarity-legendary-bg: rgba(224, 167, 46, 0.2);
+
   --sans: 'Nunito', system-ui, 'Segoe UI', Roboto, sans-serif;
   --heading: 'Baloo 2', var(--sans);
 

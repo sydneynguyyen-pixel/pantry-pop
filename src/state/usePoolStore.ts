@@ -1,13 +1,14 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 import { STARTER_RECIPES } from '../data/starterPacks'
+import { MAX_ACTIVE_RECIPES } from '../lib/constants'
 import { isRecipeCookable } from '../lib/pantry'
 import type { BoxType, Recipe } from '../types'
 import { usePantryStore } from './usePantryStore'
 
 export type NewRecipeInput = Omit<Recipe, 'id' | 'active'>
 
-export const MAX_ACTIVE_RECIPES = 8
+export { MAX_ACTIVE_RECIPES }
 
 export function isRecipeActive(recipe: Recipe): boolean {
   return recipe.active !== false

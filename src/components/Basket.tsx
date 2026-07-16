@@ -1,4 +1,5 @@
 import shoppingBasketImg from '../assets/shopping basket png 1.webp'
+import { playDing } from '../lib/sound'
 import { BASKET_CAP, useBasketStore } from '../state/useBasketStore'
 import { useDragStore } from '../state/useDragStore'
 import { useShelfStore } from '../state/useShelfStore'
@@ -59,7 +60,14 @@ export function Basket({ onCheckout }: BasketProps) {
       )}
 
       {items.length > 0 && (
-        <button type="button" className="basket__checkout" onClick={onCheckout}>
+        <button
+          type="button"
+          className="basket__checkout"
+          onClick={() => {
+            playDing()
+            onCheckout()
+          }}
+        >
           Checkout ({items.length})
         </button>
       )}

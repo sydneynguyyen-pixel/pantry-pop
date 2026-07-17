@@ -79,12 +79,18 @@ export function parseRecipeText(raw: string, imageHint?: string): ParsedRecipeDr
 export type FetchUrlResult = { text: string; imageUrl?: string } | { error: string }
 
 // Recipe sites don't send CORS headers, so a direct browser fetch is blocked.
-// Route the request through public CORS proxies instead, trying each in turn.
-const CORS_PROXIES: ((url: string) => string)[] = [
+// In production we hit our own Netlify function (same-origin, reliable); public
+// CORS proxies are kept as fallbacks and are the only option in local dev, where
+// the function isn't running. Each is tried in order until one succeeds.
+const PUBLIC_CORS_PROXIES: ((url: string) => string)[] = [
   (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
   (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
   (url) => `https://thingproxy.freeboard.io/fetch/${url}`,
 ]
+
+const CORS_PROXIES: ((url: string) => string)[] = import.meta.env.PROD
+  ? [(url) => `/api/fetch-recipe?url=${encodeURIComponent(url)}`, ...PUBLIC_CORS_PROXIES]
+  : PUBLIC_CORS_PROXIES
 
 function htmlToText(html: string): string {
   return html

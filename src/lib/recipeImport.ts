@@ -96,6 +96,100 @@ function htmlToText(html: string): string {
     .replace(/\n{2,}/g, '\n')
 }
 
+type JsonLdRecipe = {
+  name?: string
+  ingredients: string[]
+  calories?: number
+  protein?: number
+  carbs?: number
+  fat?: number
+  imageUrl?: string
+}
+
+// Pull the leading integer out of schema.org nutrition strings like "326 kcal".
+function firstInt(value: unknown): number | undefined {
+  if (typeof value !== 'string' && typeof value !== 'number') return undefined
+  const match = String(value).match(/\d+(?:\.\d+)?/)
+  return match ? Math.round(Number(match[0])) : undefined
+}
+
+function firstImageUrl(image: unknown): string | undefined {
+  if (typeof image === 'string') return image
+  if (Array.isArray(image)) return firstImageUrl(image[0])
+  if (image && typeof image === 'object') return firstImageUrl((image as { url?: unknown }).url)
+  return undefined
+}
+
+// Nearly every recipe site embeds a schema.org Recipe as JSON-LD, which gives a
+// clean ingredient list and nutrition — far better than scraping flattened HTML,
+// which drags in nav menus and glossary links.
+function extractRecipeFromJsonLd(html: string): JsonLdRecipe | null {
+  const blocks = html.matchAll(
+    /<script[^>]+type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/gi,
+  )
+
+  let found: Record<string, unknown> | null = null
+  const walk = (node: unknown) => {
+    if (found || !node || typeof node !== 'object') return
+    if (Array.isArray(node)) {
+      node.forEach(walk)
+      return
+    }
+    const record = node as Record<string, unknown>
+    const type = record['@type']
+    const isRecipe = type === 'Recipe' || (Array.isArray(type) && type.includes('Recipe'))
+    if (isRecipe && Array.isArray(record.recipeIngredient)) {
+      found = record
+      return
+    }
+    Object.values(record).forEach(walk)
+  }
+
+  for (const block of blocks) {
+    try {
+      walk(JSON.parse(block[1]))
+    } catch {
+      // Skip malformed JSON-LD blocks.
+    }
+    if (found) break
+  }
+
+  if (!found) return null
+  const recipe = found as Record<string, unknown>
+  const nutrition = (recipe.nutrition ?? {}) as Record<string, unknown>
+  const ingredients = (recipe.recipeIngredient as unknown[])
+    .map((item) =>
+      String(item)
+        .replace(/\s+/g, ' ')
+        .replace(/\(\((.*?)\)\)/g, '($1)') // recipe cards double-wrap notes
+        .trim(),
+    )
+    .filter(Boolean)
+
+  return {
+    name: typeof recipe.name === 'string' ? recipe.name : undefined,
+    ingredients,
+    calories: firstInt(nutrition.calories),
+    protein: firstInt(nutrition.proteinContent),
+    carbs: firstInt(nutrition.carbohydrateContent),
+    fat: firstInt(nutrition.fatContent),
+    imageUrl: firstImageUrl(recipe.image),
+  }
+}
+
+// Render JSON-LD recipe data as the clean text the paste-box parser expects, so
+// there's a single parse path and the user sees exactly what will be extracted.
+function normalizeRecipeText(recipe: JsonLdRecipe): string {
+  const lines: string[] = [recipe.name ?? 'Recipe', '', 'Ingredients:', ...recipe.ingredients]
+  const macros: string[] = []
+  if (recipe.calories != null) macros.push(`Calories: ${recipe.calories}`)
+  if (recipe.protein != null) macros.push(`Protein: ${recipe.protein} g`)
+  if (recipe.carbs != null) macros.push(`Carbs: ${recipe.carbs} g`)
+  if (recipe.fat != null) macros.push(`Fat: ${recipe.fat} g`)
+  if (macros.length) lines.push('', 'Nutrition:', ...macros)
+  return lines.join('\n')
+}
+
 export async function tryFetchUrlText(url: string): Promise<FetchUrlResult> {
   let parsedUrl: URL
   try {
@@ -117,6 +211,10 @@ export async function tryFetchUrlText(url: string): Promise<FetchUrlResult> {
       const ogImageMatch = html.match(
         /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i,
       )
+      const recipe = extractRecipeFromJsonLd(html)
+      if (recipe && recipe.ingredients.length) {
+        return { text: normalizeRecipeText(recipe), imageUrl: recipe.imageUrl ?? ogImageMatch?.[1] }
+      }
       return { text: htmlToText(html), imageUrl: ogImageMatch?.[1] }
     } catch {
       // Try the next proxy.

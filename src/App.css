@@ -2031,8 +2031,8 @@
   min-width: 120px;
 }
 
-.pool-manager__ingredients-field {
-  flex: 2 1 260px;
+.pool-manager__row label.pool-manager__ingredients-field {
+  flex: 1 1 100%;
 }
 
 .image-dropzone {

@@ -36,18 +36,41 @@ export function parseRecipeText(raw: string, imageHint?: string): ParsedRecipeDr
     }
   }
 
-  const calMatch = raw.match(/(\d+)\s*(?:kcal|calories|cal)\b/i)
-  const proteinMatch = raw.match(/(\d+)\s*g?\s*protein/i)
-  const carbsMatch = raw.match(/(\d+)\s*g?\s*carbs?\b/i)
-  const fatMatch = raw.match(/(\d+)\s*g?\s*fat\b/i)
+  // Macros show up in two orderings: "4g protein" in prose, or a nutrition
+  // table that flattens to "Protein:\n4\ng" (label before number). Try the
+  // label-first pattern first, then fall back to the number-first one.
+  const firstNumber = (...patterns: RegExp[]): number | undefined => {
+    for (const pattern of patterns) {
+      const match = raw.match(pattern)
+      if (match) return Number(match[1])
+    }
+    return undefined
+  }
+
+  const calories = firstNumber(
+    /calories[:\s]*?(\d+)/i,
+    /(\d+)\s*(?:kcal|calories|cal)\b/i,
+  )
+  const protein = firstNumber(
+    /protein[:\s]*?(\d+)\s*g/i,
+    /(\d+)\s*g?\s*protein/i,
+  )
+  const carbs = firstNumber(
+    /carb(?:ohydrate)?s?[:\s]*?(\d+)\s*g/i,
+    /(\d+)\s*g?\s*carbs?\b/i,
+  )
+  const fat = firstNumber(
+    /(?<!saturated\s)(?:total\s+)?fat[:\s]*?(\d+)\s*g/i,
+    /(\d+)\s*g?\s*fat\b/i,
+  )
   const imageMatch = raw.match(/https?:\/\/\S+\.(?:png|jpe?g|gif|webp)(?=[\s"'<)]|$)/i)
 
   return {
     name,
-    calories: calMatch ? Number(calMatch[1]) : undefined,
-    protein: proteinMatch ? Number(proteinMatch[1]) : undefined,
-    carbs: carbsMatch ? Number(carbsMatch[1]) : undefined,
-    fat: fatMatch ? Number(fatMatch[1]) : undefined,
+    calories,
+    protein,
+    carbs,
+    fat,
     ingredients,
     imageUrl: imageHint ?? imageMatch?.[0],
   }

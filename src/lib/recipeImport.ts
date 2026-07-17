@@ -55,6 +55,24 @@ export function parseRecipeText(raw: string, imageHint?: string): ParsedRecipeDr
 
 export type FetchUrlResult = { text: string; imageUrl?: string } | { error: string }
 
+// Recipe sites don't send CORS headers, so a direct browser fetch is blocked.
+// Route the request through public CORS proxies instead, trying each in turn.
+const CORS_PROXIES: ((url: string) => string)[] = [
+  (url) => `https://corsproxy.io/?url=${encodeURIComponent(url)}`,
+  (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  (url) => `https://thingproxy.freeboard.io/fetch/${url}`,
+]
+
+function htmlToText(html: string): string {
+  return html
+    .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]+>/g, '\n')
+    .replace(/&nbsp;/g, ' ')
+    .replace(/&amp;/g, '&')
+    .replace(/\n{2,}/g, '\n')
+}
+
 export async function tryFetchUrlText(url: string): Promise<FetchUrlResult> {
   let parsedUrl: URL
   try {
@@ -66,25 +84,24 @@ export async function tryFetchUrlText(url: string): Promise<FetchUrlResult> {
     return { error: 'Only http/https links are supported.' }
   }
 
-  try {
-    const res = await fetch(parsedUrl.toString())
-    if (!res.ok) {
-      return { error: `The page responded with an error (${res.status}). Try pasting the recipe text instead.` }
+  const target = parsedUrl.toString()
+  for (const buildProxyUrl of CORS_PROXIES) {
+    try {
+      const res = await fetch(buildProxyUrl(target))
+      if (!res.ok) continue
+      const html = await res.text()
+      if (!html || html.length < 200) continue
+      const ogImageMatch = html.match(
+        /<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i,
+      )
+      return { text: htmlToText(html), imageUrl: ogImageMatch?.[1] }
+    } catch {
+      // Try the next proxy.
     }
-    const html = await res.text()
-    const ogImageMatch = html.match(/<meta[^>]+property=["']og:image["'][^>]+content=["']([^"']+)["']/i)
-    const text = html
-      .replace(/<script[\s\S]*?<\/script>/gi, ' ')
-      .replace(/<style[\s\S]*?<\/style>/gi, ' ')
-      .replace(/<[^>]+>/g, '\n')
-      .replace(/&nbsp;/g, ' ')
-      .replace(/&amp;/g, '&')
-      .replace(/\n{2,}/g, '\n')
-    return { text, imageUrl: ogImageMatch?.[1] }
-  } catch {
-    return {
-      error:
-        'Couldn’t fetch that page directly — most sites block this from browsers. Copy the recipe text instead and paste it below.',
-    }
+  }
+
+  return {
+    error:
+      'Couldn’t fetch that page — the import proxies may be down or the site is blocking it. Copy the recipe text instead and paste it below.',
   }
 }

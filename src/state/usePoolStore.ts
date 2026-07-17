@@ -17,6 +17,7 @@ export function isRecipeActive(recipe: Recipe): boolean {
 type PoolState = {
   recipes: Recipe[]
   addRecipe: (input: NewRecipeInput) => Recipe
+  updateRecipe: (id: string, updates: Partial<NewRecipeInput>) => void
   removeRecipe: (id: string) => void
   toggleActive: (id: string) => void
   getRecipesForBoxType: (boxType: BoxType) => Recipe[]
@@ -36,6 +37,14 @@ export const usePoolStore = create<PoolState>()(
         const recipe: Recipe = { ...input, id: crypto.randomUUID(), active: activeCount < MAX_ACTIVE_RECIPES }
         set((state) => ({ recipes: [...state.recipes, recipe] }))
         return recipe
+      },
+
+      updateRecipe: (id, updates) => {
+        set((state) => ({
+          recipes: state.recipes.map((recipe) =>
+            recipe.id === id ? { ...recipe, ...updates } : recipe,
+          ),
+        }))
       },
 
       removeRecipe: (id) => {

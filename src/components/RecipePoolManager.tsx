@@ -1,30 +1,14 @@
-import { useState } from 'react'
+import { Fragment, useState } from 'react'
 import { getUniqueIngredients } from '../lib/pantry'
 import type { ParsedRecipeDraft } from '../lib/recipeImport'
+import { BOX_TYPE_LABELS, BOX_TYPE_OPTIONS, RARITY_LABELS, RARITY_OPTIONS } from '../lib/recipeMeta'
 import { usePantryStore } from '../state/usePantryStore'
 import { isRecipeActive, MAX_ACTIVE_RECIPES, usePoolStore } from '../state/usePoolStore'
 import { useShelfStore } from '../state/useShelfStore'
-import type { BoxType, Rarity } from '../types'
+import type { BoxType, Rarity, Recipe } from '../types'
 import { ImageDropzone } from './ImageDropzone'
+import { RecipeEditor } from './RecipeEditor'
 import { RecipeImportPanel } from './RecipeImportPanel'
-
-const BOX_TYPE_OPTIONS: BoxType[] = ['breakfast', 'lunch', 'dinner', 'snack', 'dessert']
-const RARITY_OPTIONS: Rarity[] = ['common', 'rare', 'ultra-rare', 'legendary']
-
-const BOX_TYPE_LABELS: Record<BoxType, string> = {
-  breakfast: 'Breakfast',
-  lunch: 'Lunch',
-  dinner: 'Dinner',
-  snack: 'Snack',
-  dessert: 'Dessert',
-}
-
-const RARITY_LABELS: Record<Rarity, string> = {
-  common: 'Common',
-  rare: 'Rare',
-  'ultra-rare': 'Ultra Rare',
-  legendary: 'Legendary',
-}
 
 const EMPTY_FORM = {
   name: '',
@@ -43,6 +27,7 @@ const EMPTY_FORM = {
 export function RecipePoolManager() {
   const recipes = usePoolStore((state) => state.recipes)
   const addRecipe = usePoolStore((state) => state.addRecipe)
+  const updateRecipe = usePoolStore((state) => state.updateRecipe)
   const removeRecipe = usePoolStore((state) => state.removeRecipe)
   const toggleActive = usePoolStore((state) => state.toggleActive)
   const unavailable = usePantryStore((state) => state.unavailable)
@@ -51,6 +36,7 @@ export function RecipePoolManager() {
   const uniqueIngredients = getUniqueIngredients(recipes)
   const [showDetails, setShowDetails] = useState(false)
   const [showImport, setShowImport] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState(EMPTY_FORM)
 
   const handleUseDraft = (draft: ParsedRecipeDraft) => {
@@ -95,6 +81,66 @@ export function RecipePoolManager() {
     setForm(EMPTY_FORM)
     setShowDetails(false)
   }
+
+  const renderRecipe = (recipe: Recipe, boxType: BoxType, active: boolean, activeCount: number) => (
+    <Fragment key={recipe.id}>
+      <li className={`pool-manager__recipe${active ? '' : ' pool-manager__recipe--inactive'}`}>
+        <label className="pool-manager__recipe-active" title="Include in blind boxes">
+          <input
+            type="checkbox"
+            checked={active}
+            disabled={!active && activeCount >= MAX_ACTIVE_RECIPES}
+            onChange={() => {
+              toggleActive(recipe.id)
+              syncSlotCount(boxType)
+            }}
+          />
+        </label>
+        <span className="pool-manager__recipe-emoji" aria-hidden="true">{recipe.emoji}</span>
+        <span className="pool-manager__recipe-name">{recipe.name}</span>
+        {!active && recipe.starter && <span className="pool-manager__suggested-badge">Suggested</span>}
+        <span className={`pool-manager__recipe-rarity pool-manager__recipe-rarity--${recipe.rarity}`}>
+          {RARITY_LABELS[recipe.rarity]}
+        </span>
+        <span className="pool-manager__recipe-calories">{recipe.macros.calories} cal</span>
+        <button
+          type="button"
+          className="pool-manager__edit"
+          onClick={() => setEditingId((current) => (current === recipe.id ? null : recipe.id))}
+          aria-expanded={editingId === recipe.id}
+          aria-label={`${editingId === recipe.id ? 'Close' : 'View or edit'} ${recipe.name}`}
+        >
+          {editingId === recipe.id ? 'Close' : 'View / Edit'}
+        </button>
+        <button
+          type="button"
+          className="pool-manager__remove"
+          onClick={() => {
+            removeRecipe(recipe.id)
+            if (editingId === recipe.id) setEditingId(null)
+            syncSlotCount(boxType)
+          }}
+          aria-label={`Remove ${recipe.name} from pool`}
+        >
+          Remove
+        </button>
+      </li>
+      {editingId === recipe.id && (
+        <li className="pool-manager__recipe-editor-row">
+          <RecipeEditor
+            recipe={recipe}
+            onCancel={() => setEditingId(null)}
+            onSave={(updates) => {
+              updateRecipe(recipe.id, updates)
+              setEditingId(null)
+              syncSlotCount(boxType)
+              if (updates.boxType && updates.boxType !== boxType) syncSlotCount(updates.boxType)
+            }}
+          />
+        </li>
+      )}
+    </Fragment>
+  )
 
   return (
     <div className="pool-manager frosted-panel">
@@ -235,37 +281,7 @@ export function RecipePoolManager() {
 
               <p className="pool-manager__subheading">In rotation</p>
               <ul className="pool-manager__recipe-list">
-                {activeRecipes.map((recipe) => (
-                  <li key={recipe.id} className="pool-manager__recipe">
-                    <label className="pool-manager__recipe-active" title="Include in blind boxes">
-                      <input
-                        type="checkbox"
-                        checked
-                        onChange={() => {
-                          toggleActive(recipe.id)
-                          syncSlotCount(boxType)
-                        }}
-                      />
-                    </label>
-                    <span className="pool-manager__recipe-emoji" aria-hidden="true">{recipe.emoji}</span>
-                    <span className="pool-manager__recipe-name">{recipe.name}</span>
-                    <span className={`pool-manager__recipe-rarity pool-manager__recipe-rarity--${recipe.rarity}`}>
-                      {RARITY_LABELS[recipe.rarity]}
-                    </span>
-                    <span className="pool-manager__recipe-calories">{recipe.macros.calories} cal</span>
-                    <button
-                      type="button"
-                      className="pool-manager__remove"
-                      onClick={() => {
-                        removeRecipe(recipe.id)
-                        syncSlotCount(boxType)
-                      }}
-                      aria-label={`Remove ${recipe.name} from pool`}
-                    >
-                      Remove
-                    </button>
-                  </li>
-                ))}
+                {activeRecipes.map((recipe) => renderRecipe(recipe, boxType, true, activeCount))}
                 {activeRecipes.length === 0 && (
                   <p className="pool-manager__hint">Nothing in rotation yet — add one below.</p>
                 )}
@@ -277,39 +293,7 @@ export function RecipePoolManager() {
                     Suggested recipes <span className="pool-manager__hint-inline">tap to add to rotation</span>
                   </p>
                   <ul className="pool-manager__recipe-list">
-                    {suggestedRecipes.map((recipe) => (
-                      <li key={recipe.id} className="pool-manager__recipe pool-manager__recipe--inactive">
-                        <label className="pool-manager__recipe-active" title="Include in blind boxes">
-                          <input
-                            type="checkbox"
-                            checked={false}
-                            disabled={activeCount >= MAX_ACTIVE_RECIPES}
-                            onChange={() => {
-                              toggleActive(recipe.id)
-                              syncSlotCount(boxType)
-                            }}
-                          />
-                        </label>
-                        <span className="pool-manager__recipe-emoji" aria-hidden="true">{recipe.emoji}</span>
-                        <span className="pool-manager__recipe-name">{recipe.name}</span>
-                        {recipe.starter && <span className="pool-manager__suggested-badge">Suggested</span>}
-                        <span className={`pool-manager__recipe-rarity pool-manager__recipe-rarity--${recipe.rarity}`}>
-                          {RARITY_LABELS[recipe.rarity]}
-                        </span>
-                        <span className="pool-manager__recipe-calories">{recipe.macros.calories} cal</span>
-                        <button
-                          type="button"
-                          className="pool-manager__remove"
-                          onClick={() => {
-                            removeRecipe(recipe.id)
-                            syncSlotCount(boxType)
-                          }}
-                          aria-label={`Remove ${recipe.name} from pool`}
-                        >
-                          Remove
-                        </button>
-                      </li>
-                    ))}
+                    {suggestedRecipes.map((recipe) => renderRecipe(recipe, boxType, false, activeCount))}
                   </ul>
                 </>
               )}
